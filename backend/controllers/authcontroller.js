@@ -1,86 +1,84 @@
-const fs = require("fs");
-const path = require("path");
-
-const usersFile = path.join(__dirname, "../data/users.json");
+const User = require("../models/User");
 
 /* REGISTER USER */
 
-const registerUser = (req, res) => {
+const registerUser = async (req, res) => {
 
-    const { name, email, password } = req.body;
+    try {
 
-    if (!name || !email || !password) {
-        return res.status(400).json({
-            message: "All fields are required"
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                message: "All fields are required"
+            });
+        }
+
+        const existingUser =
+            await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(400).json({
+                message: "User already exists"
+            });
+        }
+
+        const user =
+            await User.create({
+                name,
+                email,
+                password
+            });
+
+        res.status(201).json({
+            message: "User registered successfully",
+            user
         });
-    }
 
-    const users = JSON.parse(
-        fs.readFileSync(usersFile, "utf-8")
-    );
+    } catch (error) {
 
-    const existingUser = users.find(
-        user => user.email === email
-    );
-
-    if (existingUser) {
-        return res.status(400).json({
-            message: "User already exists"
+        res.status(500).json({
+            message: error.message
         });
+
     }
-
-    const newUser = {
-        id: Date.now(),
-        name,
-        email,
-        password
-    };
-
-    users.push(newUser);
-
-    fs.writeFileSync(
-        usersFile,
-        JSON.stringify(users, null, 2)
-    );
-
-    res.status(201).json({
-        message: "User registered successfully",
-        user: newUser
-    });
 };
 
 /* LOGIN USER */
 
-const loginUser = (req, res) => {
+const loginUser = async (req, res) => {
 
-    const { email, password } = req.body;
+    try {
 
-    if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required"
+        const { email, password } = req.body;
+
+        const user =
+            await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        if (user.password !== password) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        res.status(200).json({
+            message: "Login successful",
+            user
         });
-    }
 
-    const users = JSON.parse(
-        fs.readFileSync(usersFile, "utf-8")
-    );
+    } catch (error) {
 
-    const user = users.find(
-        user =>
-            user.email === email &&
-            user.password === password
-    );
-
-    if (!user) {
-        return res.status(401).json({
-            message: "Invalid email or password"
+        res.status(500).json({
+            message: error.message
         });
-    }
 
-    res.status(200).json({
-        message: "Login successful",
-        user
-    });
+    }
 };
 
 module.exports = {
