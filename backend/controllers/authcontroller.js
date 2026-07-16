@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 /* REGISTER USER */
 
@@ -23,16 +25,18 @@ const registerUser = async (req, res) => {
             });
         }
 
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
+
         const user =
             await User.create({
                 name,
                 email,
-                password
+                password: hashedPassword
             });
 
         res.status(201).json({
-            message: "User registered successfully",
-            user
+            message: "User registered successfully"
         });
 
     } catch (error) {
@@ -61,15 +65,36 @@ const loginUser = async (req, res) => {
             });
         }
 
-        if (user.password !== password) {
+        const isMatch =
+            await bcrypt.compare(
+                password,
+                user.password
+            );
+
+        if (!isMatch) {
             return res.status(401).json({
                 message: "Invalid email or password"
             });
         }
 
+        const token = jwt.sign(
+            {
+                id: user._id
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "1d"
+            }
+        );
+
         res.status(200).json({
             message: "Login successful",
-            user
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
         });
 
     } catch (error) {
