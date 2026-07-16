@@ -1,3 +1,6 @@
+const BASE_URL =
+    "https://task-management-system-production-7c82.up.railway.app";
+
 /* =========================
    REGISTER
 ========================= */
@@ -33,7 +36,7 @@ if (registerForm) {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5000/api/auth/register",
+                    `${BASE_URL}/api/auth/register`,
                     {
                         method: "POST",
                         headers: {
@@ -90,7 +93,7 @@ if (loginForm) {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5000/api/auth/login",
+                    `${BASE_URL}/api/auth/login`,
                     {
                         method: "POST",
                         headers: {
@@ -116,6 +119,11 @@ if (loginForm) {
                         JSON.stringify(data.user)
                     );
 
+                    localStorage.setItem(
+                        "token",
+                        data.token
+                    );
+
                     window.location.href =
                         "dashboard.html";
                 }
@@ -129,53 +137,11 @@ if (loginForm) {
 }
 
 /* =========================
-   TASKS
-========================= */
-
-function addTask() {
-
-    let taskInput =
-        document.getElementById("taskInput");
-
-    let taskValue =
-        taskInput.value.trim();
-
-    if (taskValue === "") {
-        alert("Please enter a task");
-        return;
-    }
-
-    let li =
-        document.createElement("li");
-
-    li.innerHTML = `
-        ${taskValue}
-        <button class="delete-btn">
-            Delete
-        </button>
-    `;
-
-    li.querySelector("button")
-        .addEventListener(
-            "click",
-            function () {
-                li.remove();
-            }
-        );
-
-    document
-        .getElementById("taskList")
-        .appendChild(li);
-
-    taskInput.value = "";
-}
-
-/* =========================
-   DASHBOARD
+   DASHBOARD TASKS
 ========================= */
 
 const API_URL =
-    "http://localhost:5000/api/tasks";
+    `${BASE_URL}/api/tasks`;
 
 window.addEventListener(
     "DOMContentLoaded",
@@ -220,6 +186,8 @@ async function loadTasks() {
                 "tasksContainer"
             );
 
+        if (!container) return;
+
         container.innerHTML = "";
 
         tasks.forEach(task => {
@@ -235,15 +203,15 @@ async function loadTasks() {
                     <div class="task-actions">
 
                         <button
-                        class="edit-btn"
-                        onclick="editTask('${task._id}')">
-                        Edit
+                            class="edit-btn"
+                            onclick="editTask('${task._id}')">
+                            Edit
                         </button>
 
                         <button
-                        class="delete-btn"
-                        onclick="deleteTask('${task._id}')">
-                        Delete
+                            class="delete-btn"
+                            onclick="deleteTask('${task._id}')">
+                            Delete
                         </button>
 
                     </div>
@@ -267,53 +235,13 @@ async function createTask() {
     if (!title) return;
 
     const description =
-        prompt(
-            "Enter description"
-        );
+        prompt("Enter description");
 
-    await fetch(API_URL, {
+    try {
 
-        method: "POST",
+        await fetch(API_URL, {
 
-        headers: {
-            "Content-Type":
-                "application/json"
-        },
-
-        body: JSON.stringify({
-            title,
-            description
-        })
-    });
-
-    loadTasks();
-}
-
-async function deleteTask(id) {
-
-    await fetch(
-        `${API_URL}/${id}`,
-        {
-            method: "DELETE"
-        }
-    );
-
-    loadTasks();
-}
-
-async function editTask(id) {
-
-    const title =
-        prompt(
-            "Enter new title"
-        );
-
-    if (!title) return;
-
-    await fetch(
-        `${API_URL}/${id}`,
-        {
-            method: "PUT",
+            method: "POST",
 
             headers: {
                 "Content-Type":
@@ -321,17 +249,78 @@ async function editTask(id) {
             },
 
             body: JSON.stringify({
-                title
+                title,
+                description
             })
-        }
-    );
+        });
 
-    loadTasks();
+        loadTasks();
+
+    } catch (error) {
+
+        console.log(error);
+
+    }
+}
+
+async function deleteTask(id) {
+
+    try {
+
+        await fetch(
+            `${API_URL}/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        loadTasks();
+
+    } catch (error) {
+
+        console.log(error);
+
+    }
+}
+
+async function editTask(id) {
+
+    const title =
+        prompt("Enter new title");
+
+    if (!title) return;
+
+    try {
+
+        await fetch(
+            `${API_URL}/${id}`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    title
+                })
+            }
+        );
+
+        loadTasks();
+
+    } catch (error) {
+
+        console.log(error);
+
+    }
 }
 
 function logoutUser() {
 
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
 
     window.location.href =
         "login.html";
